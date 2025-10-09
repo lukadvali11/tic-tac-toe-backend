@@ -21,7 +21,7 @@ public class GameStateController {
     }
 
     @PutMapping("/board/{boardId}/put")
-    public String putSymbol(@PathVariable Long boardId,
+    public GameState putSymbol(@PathVariable Long boardId,
                             @RequestParam("symbol") Symbol symbol,
                             @RequestParam("position") @Min(0) @Max(8) int position) {
         return gameStateService.putSymbolOnBoard(symbol, position, boardId);

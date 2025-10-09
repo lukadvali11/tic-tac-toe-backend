@@ -20,7 +20,7 @@ public class GameStateService {
         return gameStateRepository.findGameBoardById(id);
     }
 
-    public String putSymbolOnBoard(Symbol symbol, int position, Long boardId) {
+    public GameState putSymbolOnBoard(Symbol symbol, int position, Long boardId) {
         GameState gameState = gameStateRepository.findById(boardId)
                 .orElseThrow(() -> new EntityNotFoundException("GameState not found with id: " + boardId));
         validate(gameState, symbol, position);
@@ -37,8 +37,7 @@ public class GameStateService {
             gameState.setFinished(true);
             gameState.setWinner(getWinner(gameState.getBoardState()));
         }
-
-        return gameState.getBoardState();
+        return gameStateRepository.save(gameState);
     }
 
 

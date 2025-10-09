@@ -4,14 +4,17 @@ import com.example.IqsikNolik.domain.GameState;
 import com.example.IqsikNolik.domain.Symbol;
 import com.example.IqsikNolik.repository.GameStateRepository;
 import com.example.IqsikNolik.service.GameStateService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 public class GameStateServiceTest {
     @Mock
     private GameStateRepository repo;
@@ -21,22 +24,14 @@ public class GameStateServiceTest {
 
     private GameState almostFinishedBoard;
 
-    /*@BeforeEach
-    public void setup() {
-        almostFinishedBoard = new GameState(10L, "X0NNX0NNN", 2, 2, false, Symbol.N);
-        when(repo.findById(10L)).thenReturn(java.util.Optional.of(almostFinishedBoard));
-    }*/
-
     @Test
     public void shouldFinishWithCorrectWinner() {
         almostFinishedBoard = new GameState(10L, "XONNXONNN", 2, 2, false, Symbol.N);
         when(repo.findById(10L)).thenReturn(java.util.Optional.of(almostFinishedBoard));
 
-        String newStr = service.putSymbolOnBoard(Symbol.X, 8, 10L);
-        Symbol winner1 = almostFinishedBoard.getWinner();
+        GameState gameState = service.putSymbolOnBoard(Symbol.X, 8, 10L);
 
-        assertEquals(Symbol.X, winner1);
-
+        assertEquals(Symbol.X, gameState.getWinner());
     }
 
     @Test
@@ -44,10 +39,10 @@ public class GameStateServiceTest {
         almostFinishedBoard = new GameState(10L, "XOXOXNOXO", 2, 2, false, Symbol.N);
         when(repo.findById(10L)).thenReturn(java.util.Optional.of(almostFinishedBoard));
 
-        String newStr = service.putSymbolOnBoard(Symbol.X, 5, 10L);
-        Symbol winner1 = almostFinishedBoard.getWinner();
+        GameState gameState = service.putSymbolOnBoard(Symbol.X, 5, 10L);
 
-        assertEquals(Symbol.N, winner1);
+        assertTrue(gameState.isFinished());
+        assertEquals(Symbol.N, gameState.getWinner());
     }
 
     @Test
@@ -55,14 +50,8 @@ public class GameStateServiceTest {
         GameState emptyBoard = new GameState(10L, "NNNNNNNNN", 2, 2, false, Symbol.N);
         when(repo.findById(10L)).thenReturn(java.util.Optional.of(emptyBoard));
 
-        String updatedBoardState = service.putSymbolOnBoard(Symbol.X, 4, 10L);
-        char char1 = updatedBoardState.charAt(4);
+        GameState gameState = service.putSymbolOnBoard(Symbol.X, 4, 10L);
 
-        assertEquals('X', char1);
-
+        assertEquals('X', gameState.getBoardState().charAt(4));
     }
-
-
-
-
 }
