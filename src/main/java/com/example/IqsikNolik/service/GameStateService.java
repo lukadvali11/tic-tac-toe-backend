@@ -23,12 +23,18 @@ public class GameStateService {
     public GameState putSymbolOnBoard(Symbol symbol, int position, Long boardId) {
         GameState gameState = gameStateRepository.findById(boardId)
                 .orElseThrow(() -> new EntityNotFoundException("GameState not found with id: " + boardId));
-        validate(gameState, symbol, position);
+        //validate(gameState, symbol, position);
+        int numOfX = gameState.getNumberOfX();
+        int numOfO = gameState.getNumberOfO();
         StringBuilder sb = new StringBuilder(gameState.getBoardState());
         if (symbol == X) {
             sb.setCharAt(position, 'X');
+            numOfX++;
+            gameState.setNumberOfX(numOfX);
         } else if(symbol == O) {
             sb.setCharAt(position, 'O');
+            numOfO++;
+            gameState.setNumberOfO(numOfO);
         }
         String newStr = sb.toString();
         gameState.setBoardState(newStr);
@@ -63,8 +69,8 @@ public class GameStateService {
                 || symbol == O && gameState.getNumberOfX() - gameState.getNumberOfO() != 1) {
             throw new IllegalArgumentException("incorrect symbol passed");
         }
-        if (isFinished(gameState.getBoardState())) {
-            throw new IllegalArgumentException("incorrect symbol passed");
+        if (isFinished(board)) {
+            throw new IllegalArgumentException("game is finished");
         }
     }
 
@@ -132,7 +138,7 @@ public class GameStateService {
             if (i == 0 && char2 == board.charAt(i + 4) && char2 == board.charAt(i + 8)) {
                 char1 = char2;
             }
-            if (char2 == board.charAt(i + 2) && char2 == board.charAt(i + 4)) {
+            if (i == 2 && char2 == board.charAt(i + 2) && char2 == board.charAt(i + 4)) {
                 char1 = char2;
             }
         }
