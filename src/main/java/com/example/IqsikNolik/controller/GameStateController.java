@@ -1,13 +1,13 @@
 package com.example.IqsikNolik.controller;
 
-import com.example.IqsikNolik.domain.GameState;
-import com.example.IqsikNolik.domain.Symbol;
+import com.example.IqsikNolik.domain.Game;
 import com.example.IqsikNolik.service.GameStateService;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/api")
@@ -15,21 +15,28 @@ public class GameStateController {
 
     private final GameStateService gameStateService;
 
-    @GetMapping("/board/{id}")
-    public String getBoardState(@PathVariable Long id) {
-        return gameStateService.getBoard(id);
+    @GetMapping("/game/{id}")
+    public Game getGame(@PathVariable long id) {
+        return gameStateService.getGame(id);
     }
 
-    @PutMapping("/board/{boardId}/put")
-    public GameState putSymbol(@PathVariable Long boardId,
-                            @RequestParam("symbol") Symbol symbol,
-                            @RequestParam("position") @Min(0) @Max(8) int position) {
-        return gameStateService.putSymbolOnBoard(symbol, position, boardId);
+    @GetMapping("/game/{id}/move-number/{moveNum}")
+    public String getBoard(@PathVariable long id,
+                           @PathVariable @Min(0) @Max(9) int moveNum) {
+        return gameStateService.getBoard(id, moveNum);
     }
 
-    @PostMapping("/create-board")
-    public GameState createBoard() {
-        return gameStateService.addNewBoard();
+    @PutMapping("/game/{gameStateId}")
+    public Game putSymbol(@PathVariable Long gameStateId,
+                          @RequestParam("move") @Min(1) @Max(9) int moveNumber,
+                          @RequestParam("position") @Min(0) @Max(8) int position) {
+        return gameStateService.putSymbolOnBoard(gameStateId, moveNumber, position );
+    }
+
+    @PostMapping("/game")
+    public Game createGame() {
+
+        return gameStateService.addNewGame();
     }
 
 }

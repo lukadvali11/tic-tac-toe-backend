@@ -1,6 +1,7 @@
 package com.example.IqsikNolik.service;
 
-import com.example.IqsikNolik.domain.GameState;
+import com.example.IqsikNolik.domain.Board;
+import com.example.IqsikNolik.domain.Game;
 import com.example.IqsikNolik.domain.Symbol;
 import com.example.IqsikNolik.repository.GameStateRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -13,68 +14,73 @@ import static com.example.IqsikNolik.domain.Symbol.*;
 @RequiredArgsConstructor
 public class GameStateService {
 
-    private final GameState gameState;
     private final GameStateRepository gameStateRepository;
 
-    public String getBoard(Long id) {
-        return gameStateRepository.findGameBoardById(id);
+    public String getBoard(Long id, int moveNum) {
+        Game game = gameStateRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("GameState not found with id: " + id));
+        if (game.getBoards().size() <= moveNum) {
+            throw new IllegalArgumentException("moveNumber [%d] is incorrect".formatted(moveNum));
+        }
+        return game.getBoards().get(moveNum).getBoard();
     }
 
-    public GameState putSymbolOnBoard(Symbol symbol, int position, Long boardId) {
-        GameState gameState = gameStateRepository.findById(boardId)
-                .orElseThrow(() -> new EntityNotFoundException("GameState not found with id: " + boardId));
-        //validate(gameState, symbol, position);
-        int numOfX = gameState.getNumberOfX();
-        int numOfO = gameState.getNumberOfO();
-        StringBuilder sb = new StringBuilder(gameState.getBoardState());
+    public Game putSymbolOnBoard(Long gameStateId, int moveNumber, int position) {
+        Game game = gameStateRepository.findById(gameStateId)
+                .orElseThrow(() -> new EntityNotFoundException("GameState not found with id: " + gameStateId));
+        if (game.getBoards().size() < moveNumber) {
+            throw new IllegalArgumentException("moveNumber [%d] is incorrect".formatted(moveNumber));
+        }
+        Board board = game.getBoards().get(moveNumber - 1);
+
+        Symbol symbol = moveNumber % 2 == 1 ? X : O;
+        validate(board, position);
+        Board nextBoard = new Board();
+        nextBoard.setBoardIndex(moveNumber);
+
+        StringBuilder sb = new StringBuilder(board.getBoard());
         if (symbol == X) {
             sb.setCharAt(position, 'X');
-            numOfX++;
-            gameState.setNumberOfX(numOfX);
-        } else if(symbol == O) {
+        } else {
             sb.setCharAt(position, 'O');
-            numOfO++;
-            gameState.setNumberOfO(numOfO);
         }
         String newStr = sb.toString();
-        gameState.setBoardState(newStr);
+        nextBoard.setBoard(newStr);
 
-        if (isFinished(gameState.getBoardState())) {
-            gameState.setFinished(true);
-            gameState.setWinner(getWinner(gameState.getBoardState()));
+        game.removeBoardStatesAfterIndex(moveNumber);
+        game.addBoardState(nextBoard);
+
+        if (isFinished(nextBoard.getBoard())) {
+            game.setFinished(true);
+            game.setWinner(getWinner(nextBoard.getBoard()));
         }
-        return gameStateRepository.save(gameState);
+        return gameStateRepository.save(game);
     }
 
-
-    public GameState addNewBoard() {
-        gameState.setBoardState("NNNNNNNNN");
-        gameState.setNumberOfO(0);
-        gameState.setNumberOfX(0);
-        gameState.setFinished(false);
-        gameState.setWinner(N);
-        gameStateRepository.save(gameState);
-        return gameState;
+    public Game addNewGame() {
+        Game game = new Game();
+        Board board = new Board();
+        board.setBoard("NNNNNNNNN");
+        game.addBoardState(board);
+        return gameStateRepository.save(game);
     }
 
-    private void validate(GameState gameState, Symbol symbol, int position) {
-        String board = gameState.getBoardState();
-        if (symbol == N) {
-            throw new IllegalArgumentException("incorrect symbol passed");
-        }
+    public Game getGame(long id) {
+        return gameStateRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("GameState not found with id: " + id));
+    }
+
+    private static void validate(Board boardState, int position) {
+        String board = boardState.getBoard();
         if (board.charAt(position) != 'N') {
             throw new IllegalArgumentException("Position [%s] is  already occupied".formatted(position));
         }
-        if (symbol == X && gameState.getNumberOfX() - gameState.getNumberOfO() != 0
-                || symbol == O && gameState.getNumberOfX() - gameState.getNumberOfO() != 1) {
-            throw new IllegalArgumentException("incorrect symbol passed");
-        }
-        if (isFinished(board)) {
+        if (boardState.getGame().isFinished()) {
             throw new IllegalArgumentException("game is finished");
         }
     }
 
-    private boolean isFinished(String board) {
+    private static boolean isFinished(String board) {
         if (getWinner(board) != N) {
             return true;
         } else {
@@ -82,71 +88,43 @@ public class GameStateService {
         }
     }
 
-    private Symbol getWinner(String board) {
-        Symbol sym1 = checkColumnsForWinner(board);
-        Symbol sym2 = checkRowsForWinner(board);
-        Symbol sym3 = checkDiagonalsForWinner(board);
-        Symbol sym4 = N;
-
-        if (sym1 != N) {
-            sym4 = sym1;
-        } else if (sym2 != N) {
-            sym4 = sym2;
-        } else if (sym3 != N) {
-            sym4 = sym3;
-        }
-        return sym4;
+    public static Symbol getWinner(String board) {
+        Symbol winningSymbol = checkColumnsForWinner(board);
+        if (winningSymbol != N) return winningSymbol;
+        winningSymbol = checkRowsForWinner(board);
+        if (winningSymbol != N) return winningSymbol;
+        winningSymbol = checkDiagonalsForWinner(board);
+        if (winningSymbol != N) return winningSymbol;
+        return N;
     }
 
-    private Symbol checkColumnsForWinner(String board) {
-        Symbol symbol = N;
-        char char1 = 'N';
+    private static Symbol checkColumnsForWinner(String board) {
         for (int i = 0; i <= 2; i++) {
+            if (board.charAt(i) == 'N') continue;
             if (board.charAt(i) == board.charAt(i+3) && board.charAt(i) == board.charAt(i + 6)) {
-                char1 = board.charAt(i);
+                return getSymbol(board.charAt(i));
             }
         }
-        if (char1 == 'X') {
-            symbol = X;
-        } else if (char1 == 'O') {
-            symbol = O;
-        }
-        return symbol;
+        return N;
     }
 
-    private Symbol checkRowsForWinner(String board) {
-        Symbol symbol = N;
-        char char1 = 'N';
-        for (int i = 0; i <= 6; i += 3) {
-            if (board.charAt(i) == board.charAt(i+1) && board.charAt(i) == board.charAt(i + 2)) {
-                char1 = board.charAt(i);
+    private static Symbol checkRowsForWinner(String board) {
+        for (int i = 0; i <= 2; i++) {
+            if (board.charAt(3*i) == 'N') continue;
+            if (board.charAt(3*i) == board.charAt(3*i + 1) && board.charAt(3*i + 1) == board.charAt(3*i + 2)) {
+                return getSymbol(board.charAt(3*i));
             }
         }
-        if (char1 == 'X') {
-            symbol = X;
-        } else if (char1 == 'O') {
-            symbol = O;
-        }
-        return symbol;
+        return N;
     }
 
-    private Symbol checkDiagonalsForWinner(String board) {
-        Symbol symbol = N;
-        char char1 = 'N';
-        for (int i = 0; i <= 2; i += 2) {
-            char char2 = board.charAt(i);
-            if (i == 0 && char2 == board.charAt(i + 4) && char2 == board.charAt(i + 8)) {
-                char1 = char2;
-            }
-            if (i == 2 && char2 == board.charAt(i + 2) && char2 == board.charAt(i + 4)) {
-                char1 = char2;
-            }
+    private static Symbol checkDiagonalsForWinner(String board) {
+        if (board.charAt(0) != 'N' && board.charAt(0) == board.charAt(4) && board.charAt(4) == board.charAt(8)) {
+            return getSymbol(board.charAt(0));
         }
-        if (char1 == 'X') {
-            symbol = X;
-        } else if (char1 == 'O') {
-            symbol = O;
+        if (board.charAt(2) != 'N' && board.charAt(2) == board.charAt(4) && board.charAt(4) == board.charAt(6)) {
+            return getSymbol(board.charAt(2));
         }
-        return symbol;
+        return N;
     }
 }

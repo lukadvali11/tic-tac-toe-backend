@@ -1,12 +1,13 @@
 package com.example.IqsikNolik.domain;
 
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import static jakarta.persistence.EnumType.STRING;
 import static jakarta.persistence.GenerationType.IDENTITY;
 
 @Getter
@@ -14,20 +15,18 @@ import static jakarta.persistence.GenerationType.IDENTITY;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-public class GameState {
+public class Board {
 
     @GeneratedValue(strategy = IDENTITY)
     @Id
-    private Long id;
+    private long id;
 
-    private String boardState;
+    private String board;
 
-    private int numberOfX;
+    private int boardIndex;
 
-    private int numberOfO;
-
-    private boolean finished;
-
-    @Enumerated(STRING)
-    private Symbol winner = Symbol.N;
+    @JsonIgnore
+    @ManyToOne
+    @JoinColumn(name = "game_id", nullable = false)
+    private Game game;
 }
