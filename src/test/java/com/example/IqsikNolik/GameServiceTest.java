@@ -39,18 +39,18 @@ public class GameServiceTest {
         when(repo.findById(anyLong())).thenReturn(java.util.Optional.ofNullable(game));
         when(repo.save(any(Game.class))).thenAnswer(i -> i.getArgument(0));
 
-        Game result = service.putSymbolOnBoard(10L, 1, 4);
+        Game result = service.putSymbolOnBoard(10L, 4);
         assertEquals("NNNNXNNNN",result.getBoards().get(1).getBoard());
     }
 
 
     @ParameterizedTest
     @MethodSource("provideArguments")
-    void shouldThrowAnException(Class<? extends RuntimeException> exception, Optional<Game> opt) {
+    void shouldThrowAnException(Class<? extends RuntimeException> exception, Game game) {
 
-        when(repo.findById(10L)).thenReturn(opt);
+        when(repo.findById(10L)).thenReturn(Optional.ofNullable(game));
         assertThrows(exception,
-                () -> service.putSymbolOnBoard(10L, 2, 5));
+                () -> service.putSymbolOnBoard(10L, 5));
     }
 
     @Test
@@ -64,7 +64,7 @@ public class GameServiceTest {
         game.setWinner(X);
         when(repo.findById(10L)).thenReturn(java.util.Optional.of(game));
         assertThrows(IllegalArgumentException.class,
-                () -> service.putSymbolOnBoard(10L, 2, 4));
+                () -> service.putSymbolOnBoard(10L, 4));
     }
     @Test
     void shouldNotGetValidated() {
@@ -76,7 +76,7 @@ public class GameServiceTest {
 
         when(repo.findById(10L)).thenReturn(Optional.of(game));
         assertThrows(IllegalArgumentException.class,
-                () -> service.putSymbolOnBoard(10L, 2, 1));
+                () -> service.putSymbolOnBoard(10L, 1));
     }
 
     private static Game getBasicGameState() {
@@ -92,10 +92,11 @@ public class GameServiceTest {
 
     public static Stream<Arguments> provideArguments() {
         Game game = getBasicGameState();
+        game.setFinished(true);
 
         return Stream.of(
-                Arguments.of(EntityNotFoundException.class, java.util.Optional.empty()),
-                Arguments.of(IllegalArgumentException.class, java.util.Optional.of(game))
+                Arguments.of(EntityNotFoundException.class, null),
+                Arguments.of(IllegalArgumentException.class, game)
         );
     }
 

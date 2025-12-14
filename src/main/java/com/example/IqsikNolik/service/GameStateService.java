@@ -2,19 +2,57 @@ package com.example.IqsikNolik.service;
 
 import com.example.IqsikNolik.domain.Board;
 import com.example.IqsikNolik.domain.Game;
+import com.example.IqsikNolik.domain.Player;
 import com.example.IqsikNolik.domain.Symbol;
 import com.example.IqsikNolik.repository.GameStateRepository;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import static com.example.IqsikNolik.domain.Symbol.*;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class GameStateService {
 
     private final GameStateRepository gameStateRepository;
+    private final PlayerService playerService;
+
+    @Transactional
+    public Game addNewGame(Long playerId) {
+        Player player = playerService.findPlayerById(playerId);
+        Game game = new Game();
+        Board board = new Board();
+        game.addBoardState(board);
+        game.addPlayerX(player);
+        return gameStateRepository.save(game);
+    }
+
+    public Game addNewGame() {
+        Game game = new Game();
+        Board board = new Board();
+        game.addBoardState(board);
+        return gameStateRepository.save(game);
+    }
+
+    @Transactional
+    public Game joinGame(Long gameId, Long playerId) {
+        Player player = playerService.findPlayerById(playerId);
+        Game game = findGame(gameId);
+        if (game.getPlayerX() == null) {
+            game.addPlayerX(player);
+        } else if (game.getPlayerO() == null) {
+            game.addPlayerO(player);
+        } else {
+            log.warn("Could not join player [{}] to game [{}], as the game is already in progress",
+                    player.getId(), game.getId());
+        }
+        gameStateRepository.save(game);
+        return game;
+    }
 
     public String getBoard(Long id, int moveNum) {
         Game game = gameStateRepository.findById(id)
@@ -25,18 +63,18 @@ public class GameStateService {
         return game.getBoards().get(moveNum).getBoard();
     }
 
-    public Game putSymbolOnBoard(Long gameStateId, int moveNumber, int position) {
+    public Game putSymbolOnBoard(Long gameStateId, int position) {
         Game game = gameStateRepository.findById(gameStateId)
                 .orElseThrow(() -> new EntityNotFoundException("GameState not found with id: " + gameStateId));
-        if (game.getBoards().size() < moveNumber) {
-            throw new IllegalArgumentException("moveNumber [%d] is incorrect".formatted(moveNumber));
+        if (game.isFinished()) {
+            throw new IllegalArgumentException("Game is already finished");
         }
-        Board board = game.getBoards().get(moveNumber - 1);
+        Board board = game.getBoards().getLast();
 
-        Symbol symbol = moveNumber % 2 == 1 ? X : O;
+        Symbol symbol = board.getBoardIndex() % 2 == 0 ? X : O;
         validate(board, position);
         Board nextBoard = new Board();
-        nextBoard.setBoardIndex(moveNumber);
+        nextBoard.setBoardIndex(board.getBoardIndex() + 1);
 
         StringBuilder sb = new StringBuilder(board.getBoard());
         if (symbol == X) {
@@ -47,7 +85,6 @@ public class GameStateService {
         String newStr = sb.toString();
         nextBoard.setBoard(newStr);
 
-        game.removeBoardStatesAfterIndex(moveNumber);
         game.addBoardState(nextBoard);
 
         if (isFinished(nextBoard.getBoard())) {
@@ -57,15 +94,7 @@ public class GameStateService {
         return gameStateRepository.save(game);
     }
 
-    public Game addNewGame() {
-        Game game = new Game();
-        Board board = new Board();
-        board.setBoard("NNNNNNNNN");
-        game.addBoardState(board);
-        return gameStateRepository.save(game);
-    }
-
-    public Game getGame(long id) {
+    public Game findGame(long id) {
         return gameStateRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("GameState not found with id: " + id));
     }

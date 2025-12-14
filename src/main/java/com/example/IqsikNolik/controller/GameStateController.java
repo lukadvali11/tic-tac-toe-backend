@@ -17,7 +17,7 @@ public class GameStateController {
 
     @GetMapping("/game/{id}")
     public Game getGame(@PathVariable long id) {
-        return gameStateService.getGame(id);
+        return gameStateService.findGame(id);
     }
 
     @GetMapping("/game/{id}/move-number/{moveNum}")
@@ -28,9 +28,8 @@ public class GameStateController {
 
     @PutMapping("/game/{gameStateId}")
     public Game putSymbol(@PathVariable Long gameStateId,
-                          @RequestParam("move") @Min(1) @Max(9) int moveNumber,
                           @RequestParam("position") @Min(0) @Max(8) int position) {
-        return gameStateService.putSymbolOnBoard(gameStateId, moveNumber, position );
+        return gameStateService.putSymbolOnBoard(gameStateId, position );
     }
 
     @PostMapping("/game")

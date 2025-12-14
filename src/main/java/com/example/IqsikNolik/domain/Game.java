@@ -23,6 +23,14 @@ public class Game {
     @Id
     private Long id;
 
+    @ManyToOne
+    @JoinColumn(name = "player_x_id")
+    private Player playerX;
+
+    @ManyToOne
+    @JoinColumn(name = "player_o_id")
+    private Player playerO;
+
     @OneToMany(mappedBy = "game", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Board> boards = new ArrayList<>();
 
@@ -34,6 +42,16 @@ public class Game {
     public void addBoardState(Board board) {
         boards.add(board);
         board.setGame(this);
+    }
+
+    public void addPlayerX(Player player) {
+        playerX = player;
+        player.getGamesAsX().add(this);
+    }
+
+    public void addPlayerO(Player player) {
+        playerO = player;
+        player.getGamesAsO().add(this);
     }
 
     public void removeBoardStatesAfterIndex(int moveNumber) {

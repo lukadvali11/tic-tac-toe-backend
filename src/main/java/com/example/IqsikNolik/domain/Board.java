@@ -21,7 +21,7 @@ public class Board {
     @Id
     private long id;
 
-    private String board;
+    private String board = "NNNNNNNNN";
 
     private int boardIndex;
 
